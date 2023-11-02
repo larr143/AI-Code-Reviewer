@@ -11,6 +11,3 @@ length_of_rectangle=10
 width_of_rectangle=5
 
 print_rectangle_properties(length_of_rectangle,width_of_rectangle)
-
-
-
