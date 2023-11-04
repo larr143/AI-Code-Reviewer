@@ -2,7 +2,7 @@ from io import StringIO
 from pylint.lint import Run
 from pylint.reporters.text import TextReporter
 import openai
-
+    
 openai.api_key = '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'
 
 
@@ -17,7 +17,7 @@ def main():
     # Specify the path to your custom .pylintrc file
     custom_rcfile = "C:/Users/larry/Desktop/CSC 390/.pylintrc"
     
-    code = "crapCode.py"
+    code = "crapCode2.py"
 
     # Run pylint on the specified file(s) with the custom reporter
     Run([code, "--rcfile", custom_rcfile], reporter=reporter, exit=False)
