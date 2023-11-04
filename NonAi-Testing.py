@@ -15,7 +15,7 @@ def main():
     reporter = TextReporter(pylint_output)
     
     # Specify the path to your custom .pylintrc file
-    custom_rcfile = "C:/Users/larry/Desktop/CSC 390/.pylintrc"
+    custom_rcfile = "C:/Users/larry/OneDrive/Documents/compsci/CSC-390/.pylintrc"
     
     code = "crapCode2.py"
 
@@ -102,7 +102,7 @@ def main():
     """} ]
 
 
-    file = open("C:/Users/larry/Desktop/CSC 390/crapCode.py", 'r')
+    file = open("crapCode2.py", 'r')
     
     messages.append(
        {"role": "user", "content": file.read()}, 
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     
     
     
-""" Output Docstring
+""" Output Docstring for CrapCode.py
 Convention: Your code is missing a final newline at the end. Adding a final newline is a good practice as it ensures that the file ends with a blank line, which is the standard convention in Python.
 Convention: The module does not have a docstring. A docstring is a special type of comment at the beginning of a Python file that explains its purpose and provides an overview of its content. Adding a docstring to your code helps other developers (or yourself) understand what the module does and how to use it.
 Convention: The module name "crapCode" does not adhere to the recommended snake_case naming style. In Python, it is best practice to name modules using lowercase letters and underscores.
@@ -148,4 +148,24 @@ Convention: The function "calculate_area_of_rectangle" does not have a docstring
 Convention: The function "print_rectangle_properties" does not have a docstring. A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
 Convention: The variable "length_of_rectangle" does not follow the recommended naming style. In Python, constants are typically written in uppercase letters with underscores between words. To improve the readability and maintainability of your code, consider renaming the variable to "LENGTH_OF_RECTANGLE".
 Convention: The constant "width_of_rectangle" should be named using uppercase letters and underscores to follow the naming style convention for constants in Python. Consider renaming it to "WIDTH_OF_RECTANGLE" for better readability and adherence to the recommended naming convention.
+"""
+
+"""Output Docstring for CrapCode2.py
+Warning: The line with the variable "long_string" is too long, exceeding the recommended maximum line length of 100 characters. Pylint generates this warning because long lines can decrease code readability. To improve the readability and maintainability of your code, consider breaking long lines into multiple lines or utilizing string concatenation to achieve the desired functionality.
+Convention: The Python module does not have a docstring. A docstring is a special type of comment in code that explains what the module does, its purpose, and any other important information for other developers (or the coder themselves) to understand and use the module correctly. Adding a docstring to the module will improve code readability and documentation.     
+Convention: The module name "crapCode2" does not follow the snake_case naming style convention. In Python, it is recommended to use lowercase letters and underscores to separate words in module names for better readability. Consider renaming your module to adhere to this convention.
+Convention: The function "fibonacci" does not have a docstring. A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
+Convention: The function "undocumented_function" does not have a docstring. A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
+Convention: The function "undocumented_function" does not have a docstring. A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
+Convention: The class "myClass" does not have a docstring. A docstring is a special type of comment in code that explains what a class does, providing information about its purpose, functionality, and usage. Adding a docstring to your class will enhance code readability and make it easier for other developers (or even yourself) to understand and use the class effectively.
+Convention: The class name "myClass" does not follow the recommended PascalCase naming style. In Python, it is convention to use PascalCase for class names, which means the first letter of each word should be capitalized. It is recommended to rename the class to "MyClass" to adhere to the naming convention and make the code more readable and consistent.
+Convention: The function "undocumented_function" does not have a docstring. A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
+Convention: The variable "long_string" should be named in uppercase letters, following the naming convention for constants in Python. By using uppercase letters, it helps differentiate constant values from regular variables and makes the code more readable and understandable for other developers.
+Convention: The import statement "import math" should be placed at the top of the module. It is a recommended practice in Python to include all import statements at the beginning of your code to make it easier for other developers to understand which dependencies are being used.
+Error: The variable 'undefined_variable' is being used but it has not been defined anywhere in your code. In Python, it's important to make sure that you define all your variables before using them. Please check your code and make sure you have properly defined the variable before using it.
+Convention: The variable "InvalidVariableName" does not follow the naming convention for constants. In Python, constants are usually named in uppercase letters with underscores between words. This makes it easier to distinguish them from regular variables and improves code readability. Consider renaming the variable to a more appropriate name that follows the uppercase naming style.
+Convention: The function "undocumented_function" does not have a docstring. A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
+Convention: The name "redefined_variable" does not conform to the UPPER_CASE naming style convention. In Python, constants are typically written in uppercase letters with underscores between words to make them easily distinguishable. Consider renaming the variable to follow this convention for better code readability.
+Convention: The variable "redefined_variable" should be named using uppercase letters with underscores between words, following the UPPER_CASE naming style convention.
+Warning: The import 'math' is not used in your code. Pylint suggests removing any unused imports to keep your code clean and improve its readability.
 """
