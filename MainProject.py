@@ -3,7 +3,10 @@ from tkinter import ttk
 from tkinter import scrolledtext
 import os 
 import ast
-
+from io import StringIO
+from pylint.lint import Run
+import openai
+    
 
 class windows(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -37,18 +40,26 @@ class windows(tk.Tk):
         # Using a method to switch frames
         self.show_frame(MainPage)
         
+        # Creating a bind for when the size ofthe frame changes then sending the update size command to the frame.
         self.bind("<Configure>", self.frames[MainPage].update_size)
-
-        
         self.prev_width = self.winfo_width()
         self.prev_height = self.winfo_height()
-
+        
+        #creating the variables that store code and the comments. 
+        self.code = ""
+        self.pylint_comments = ""
+        self.chatgpt_comments = ""
+        
+    def pylint_proccesing(self):
+        custom_rcfile = "C:/Users/larry/OneDrive/Documents/compsci/CSC-390/.pylintrc"
+        pylint_args = ["--rcfile", custom_rcfile, "-"]
+        pylint_output = Run(pylint_args + ['-'], do_exit=False).linter.stats['global_note']
+        print(pylint_output)
 
     def show_frame(self, cont):
         frame = self.frames[cont]
         # raises the current frame to the top
         frame.tkraise()
-
 
     def on_resize(self, event):
         # Get the new size of the window
@@ -117,13 +128,19 @@ class MainPage(tk.Frame):
     def code_Checker(self):
         try:
             ast.parse(self.text_area.get('1.0', 'end-1c'))
-            
+            print("parsed")
+            self.isvalid = True
         except SyntaxError:
+            print('False')
             self.isvalid = False
             self.what_to_display()
-            
+        
+        
         if self.isvalid == True:
+            print("")
             self.isvalid = True
+            self.controller.code = self.text_area.get("1.0", "end-1c")
+            self.controller.pylint_processing()
 
         
   
@@ -147,9 +164,14 @@ class LoadingPage(tk.Frame):
     
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.what_to_display()
         
-        label = tk.Label(self, text="This Is the Search Page")
-        label.pack(padx=10, pady=10)
+    
+        
+    def what_to_display(self):
+        label = tk.Label(self, text="Loading Code...")
+        label.pack(padx=10, pady=10) 
         
     
     def clear_page(self):
