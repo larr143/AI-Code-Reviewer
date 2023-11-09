@@ -31,7 +31,7 @@ def main():
     # deleting the first line that isnt needed
     modified_output.pop(0)
     
-    # deleting all lines that arent codes
+    # deleting all lines that isnt a code 
     for i in range(len(modified_output)):
         if "------------------------------" in modified_output[i]:
             del modified_output[i:]

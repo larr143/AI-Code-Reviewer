@@ -3,9 +3,11 @@ from tkinter import ttk
 from tkinter import scrolledtext
 import os 
 import ast
+import openai
 from io import StringIO
 from pylint.lint import Run
-import openai
+from pylint.reporters.text import TextReporter
+import tempfile
     
 
 class windows(tk.Tk):
@@ -48,14 +50,58 @@ class windows(tk.Tk):
         #creating the variables that store code and the comments. 
         self.code = ""
         self.pylint_comments = ""
-        self.chatgpt_comments = ""
-        
-    def pylint_proccesing(self):
-        custom_rcfile = "C:/Users/larry/OneDrive/Documents/compsci/CSC-390/.pylintrc"
-        pylint_args = ["--rcfile", custom_rcfile, "-"]
-        pylint_output = Run(pylint_args + ['-'], do_exit=False).linter.stats['global_note']
-        print(pylint_output)
+        self.chatgpt_comments = ""           
 
+        
+    def pylint_Processing(self):
+        
+        code = self.code
+        
+        temp_dir = tempfile.mkdtemp()  # Create a temporary directory
+        temp_file_path = os.path.join(temp_dir, 'temp_script.py')  # Create a temporary file path
+
+        with open(temp_file_path, 'w') as temp_file:
+            temp_file.write(code)  # Write the input string to the temporary file
+    
+        custom_rcfile = "C:/Users/larry/OneDrive/Documents/compsci/CSC-390/.pylintrc"
+    
+        # Custom open stream
+        pylint_output = StringIO()
+
+        # Create a reporter with the custom stream
+        reporter = TextReporter(pylint_output)
+    
+        # Specify the path to your custom .pylintrc file
+        custom_rcfile = "C:/Users/larry/OneDrive/Documents/compsci/CSC-390/.pylintrc"
+        
+        # Run pylint on the specified file(s) with the custom reporter
+        Run([temp_file_path, "--rcfile", custom_rcfile], reporter=reporter, exit=False)
+
+        # Retrieve the text report
+        output_text = pylint_output.getvalue()
+    
+        # Split the output of pylint into a list
+        modified_output = output_text.splitlines()
+        
+        # deleting the first line that isnt needed
+        modified_output.pop(0)
+        
+        for i in range(len(modified_output)):
+            if "------------------------------" in modified_output[i]:
+                del modified_output[i:]
+                modified_output.pop()
+                break
+
+        for i in range(len(modified_output)):
+            modified_output[i] = modified_output[i].lstrip(temp_file_path)
+            
+        self.pylint_comments = modified_output
+        
+        self.show_frame(LoadingPage)
+        
+        
+        
+        
     def show_frame(self, cont):
         frame = self.frames[cont]
         # raises the current frame to the top
@@ -140,10 +186,9 @@ class MainPage(tk.Frame):
             print("")
             self.isvalid = True
             self.controller.code = self.text_area.get("1.0", "end-1c")
-            self.controller.pylint_processing()
+            self.controller.pylint_Processing()
 
         
-  
     def update_size(self, event):
         # Get the new size of the frame
         width = event.width
@@ -167,13 +212,21 @@ class LoadingPage(tk.Frame):
         self.controller = controller
         self.what_to_display()
         
-    
         
     def what_to_display(self):
+        
+        self.clear_page()
+        
         label = tk.Label(self, text="Loading Code...")
         label.pack(padx=10, pady=10) 
         
-    
+        
+        
+        
+    def chatgpt_Proccessing():
+        pass
+        
+        
     def clear_page(self):
         # Destroy all widgets inside the frame
         for widget in self.winfo_children():
