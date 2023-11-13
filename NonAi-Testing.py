@@ -2,8 +2,6 @@ from io import StringIO
 from pylint.lint import Run
 from pylint.reporters.text import TextReporter
 import openai
-    
-openai.api_key = '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'
 
 
 def main():
