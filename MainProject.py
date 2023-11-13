@@ -1,23 +1,28 @@
-import tkinter as tk 
-from tkinter import ttk 
-from tkinter.scrolledtext import ScrolledText
-import os 
 import ast
-import openai
+import os
+import tempfile
+import tkinter as tk
+import tkinter.messagebox
 from io import StringIO
+from tkinter import filedialog, ttk
+from tkinter.filedialog import askopenfile, asksaveasfile
+from tkinter.scrolledtext import ScrolledText
+
+import openai
 from pylint.lint import Run
 from pylint.reporters.text import TextReporter
-import tempfile
-
-api_key_file = open("C:/Users/larry/OneDrive/Desktop/API KEY.txt", 'r')
-    
-    
-openai.api_key = api_key_file.read()
 
 
 class windows(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
+        # Creating a dictionary of frames
+        self.frames = {}
+        
+        #creating the variables that store code and the comments. 
+        self.code = ""
+        self.pylint_comments = []
+        self.chatgpt_comments = [] 
         
         # Adding a title to the window
         self.wm_title("Code Reviewer")
@@ -27,18 +32,10 @@ class windows(tk.Tk):
         
         # specifying the region where the frame is packed in root
         container.pack(side="top", fill="both", expand=True)
-        
-        #creating the variables that store code and the comments. 
-        self.code = ""
-        self.pylint_comments = []
-        self.chatgpt_comments = []  
 
         # configuring the location of the container using grid
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-
-        # We will now create a dictionary of frames
-        self.frames = {}
 
         # we'll create the frames themselves later but let's add the components to the dictionary.
         for F in (MainPage, CodeDisplayPage):
@@ -53,12 +50,33 @@ class windows(tk.Tk):
         self.bind("<Configure>", self.frames[MainPage].update_size)
         self.prev_width = self.winfo_width()
         self.prev_height = self.winfo_height()     
-
-
+        
+        self.menu_bar()
+        
         # Using a method to switch frames
         self.show_frame(MainPage)
     
+    def menu_bar(self):
         
+        menubar = tk.Menu(self)
+        filemenu = tk.Menu(menubar, tearoff=0)
+        filemenu.add_command(label="Open",
+            command=self.frames[MainPage].user_file_selection)
+        filemenu.add_command(label="Save",
+            command=self.frames[CodeDisplayPage].save)
+        filemenu.add_separator()
+        filemenu.add_command(label="Exit", command=self.quit)
+        menubar.add_cascade(label="File", menu=filemenu)
+        
+        helpmenu = tk.Menu(menubar, tearoff=0)
+        helpmenu.add_command(label="Help Index",
+            command=self.help_dialog)
+        helpmenu.add_command(label="About...",
+            command=self.about_dialog)
+        menubar.add_cascade(label="Help", menu=helpmenu)
+        
+        self.config(menu=menubar)
+    
     def pylint_Processing(self, code):
         
         temp_dir = tempfile.mkdtemp()  # Create a temporary directory
@@ -79,7 +97,8 @@ class windows(tk.Tk):
         custom_rcfile = "C:/Users/larry/OneDrive/Documents/compsci/CSC-390/.pylintrc"
         
         # Run pylint on the specified file(s) with the custom reporter
-        Run([temp_file_path, "--rcfile", custom_rcfile], reporter=reporter, exit=False)
+        Run([temp_file_path, "--rcfile", custom_rcfile],
+            reporter=reporter, exit=False)
 
         # Retrieve the text report
         output_text = pylint_output.getvalue()
@@ -97,11 +116,10 @@ class windows(tk.Tk):
                 break
 
         for i in range(len(modified_output)):
-            modified_output[i] = modified_output[i].replace( (temp_file_path + ':') , '')
+            modified_output[i] = modified_output[i].replace((temp_file_path + ':') , '')
             
         self.pylint_comments = modified_output
-        
-        
+            
     def show_frame(self, cont):
         frame = self.frames[cont]
         
@@ -123,8 +141,35 @@ class windows(tk.Tk):
             # Resize components accordingly
             for frame in self.frames.values():
                 frame.update_size(width, height)
-            
-            
+    
+    def help_dialog(self):
+        message = """
+If you are having troubles with entering your code into the entry box.
+	- Make sure the code is properly indented, if the function you enter 
+	starts with a tab or spaces infront of it, it isn't properly indented
+	- For example, the first main is correct the second is tabbed wrong.
+def main():
+	print("Hello World!")
+
+	def main():
+		print("Hello World!")
+
+If all of that isn't working you can use the open button on the menu in the home winow to add your code directly from a python file. 
+        """
+        
+        tkinter.messagebox.showinfo("Help", message)
+    
+    def about_dialog(self):
+        message = """
+This program is a Code reviewer that takes in any size of python program.
+It will then pass that program to Pylint, once Pylint reports, the reports are then sent to ChatGPT. 
+ChatGPT will then reword the reports to help new users understand the problems with the program. 
+This includes errors, warnings, convention, and refactoring. 
+
+This program was written by Larry Tieken. 
+        """
+        
+        tkinter.messagebox.showinfo("Help", message)
 
 class MainPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -145,24 +190,29 @@ class MainPage(tk.Frame):
         self.text_area = tk.Text(self, wrap=tk.NONE, 
             width=60, height=18, font=("Consolas", 12)) 
 
-        self.text_area.grid(column=0, row=1, pady=2, padx=2, sticky="nsew")
+        self.text_area.grid(column=0, row=1, pady=2,
+            padx=2, sticky="nsew")
         
         scrolly = ttk.Scrollbar(self, command=self.text_area.yview)
         scrolly.grid(row=1, column=1, sticky='nsew')
         self.text_area['yscrollcommand'] = scrolly.set
             
-        scrollx = ttk.Scrollbar(self, orient="horizontal" , command=self.text_area.xview)
+        scrollx = ttk.Scrollbar(self, orient="horizontal",
+            command=self.text_area.xview)
         scrollx.grid(row=2, column=0, sticky='nsew')
         self.text_area['xscrollcommand'] = scrollx.set
         
         
         if type(self.isvalid) == bool:
             if not self.isvalid:
-                validtext = tk.Label(self, text="your code is not valid, please try again!")
-                validtext.grid(column=0, row=4, pady=10, padx=10, sticky="nsew")
+                validtext = tk.Label(self, 
+                    text="your code is not valid, please try again!")
+                validtext.grid(column=0, row=4, 
+                    pady=10, padx=10, sticky="nsew")
             else: 
                 validtext = tk.Label(self, text="")
-                validtext.grid(column=0, row=4, pady=10, padx=10, sticky="nsew")
+                validtext.grid(column=0, row=4,
+                    pady=10, padx=10, sticky="nsew")
         
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1) 
@@ -176,13 +226,27 @@ class MainPage(tk.Frame):
         
         self.frame_style()
         
+    def user_file_selection(self):
+        
+        file = filedialog.askopenfile(mode='r',
+            filetypes=[('Python Files', '*.py')])
+
+        if file:
+            # Read the content from the file object
+            content = file.read()
+
+            # Insert the content into the text area
+            self.text_area.insert(tk.END, content)
+
+            # Close the file
+            file.close()
+        
+        self.update_idletasks()   
         
     def frame_style(self):
         
-        self.text_area.config(undo=True, background="#262335")
-        self.text_area.config(borderwidth=3, relief="sunken")
-        self.text_area.config(foreground="#F573C8")
-        
+        self.text_area.config(undo=True, background="#262335",
+            borderwidth=3, relief="sunken", foreground="#F573C8") 
         
         style=ttk.Style()
         style.theme_use('classic')
@@ -192,7 +256,8 @@ class MainPage(tk.Frame):
             background="#A65D34", troughcolor = "#241B2F")
         
         
-        self.button.config(background="#241B2F", foreground="#C93D4F")
+        self.button.config(background="#241B2F", 
+            foreground="#C93D4F")
         
         
         self.config(bg='#121841')
@@ -210,7 +275,6 @@ class MainPage(tk.Frame):
             self.controller.code = self.text_area.get("1.0", "end-1c")
             self.controller.pylint_Processing(self.controller.code)
             self.chatgpt_Processing()
-
 
     def chatgpt_Processing(self):
         
@@ -294,12 +358,9 @@ class MainPage(tk.Frame):
             reply = chat.choices[0].message.content 
             
             self.controller.chatgpt_comments.append(reply)
-    
-        # self.controller.chatgpt_comments = self.controller.pylint_comments
         
         self.controller.show_frame(CodeDisplayPage)
-        
-        
+         
     def update_size(self, event):
         # Get the new size of the frame
         width = event.width
@@ -307,7 +368,6 @@ class MainPage(tk.Frame):
 
         # Resize the text area accordingly
         self.text_area.config(width=width // 10, height=height // 30)
-        
         
     def clear_page(self):
         # Destroy all widgets inside the frame
@@ -320,6 +380,10 @@ class CodeDisplayPage(ttk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+
+        self.code_Display = tk.Text(self, wrap=tk.NONE, 
+                width=60, height=20, font=("Consolas", 12))
+        
         self.text_Population
         
     def text_Population(self):
@@ -338,13 +402,15 @@ class CodeDisplayPage(ttk.Frame):
             self.code_Display = tk.Text(self, wrap=tk.NONE, 
                 width=60, height=20, font=("Consolas", 12))
             
-            self.code_Display.grid(column=0, row=1, pady=2, padx=2, sticky="nsew")
+            self.code_Display.grid(column=0, row=1, pady=2,
+                padx=2, sticky="nsew")
             
             scrolly = ttk.Scrollbar(self, command=self.code_Display.yview)
             scrolly.grid(row=1, column=1, sticky='nsew')
             self.code_Display['yscrollcommand'] = scrolly.set
             
-            scrollx = ttk.Scrollbar(self, orient="horizontal" , command=self.code_Display.xview)
+            scrollx = ttk.Scrollbar(self, orient="horizontal" ,
+                command=self.code_Display.xview)
             scrollx.grid(row=2, column=0, sticky='nsew')
             self.code_Display['xscrollcommand'] = scrollx.set
             
@@ -395,9 +461,8 @@ class CodeDisplayPage(ttk.Frame):
             
     def frame_style(self):
         
-        self.code_Display.config(undo=True, background="#262335")
-        self.code_Display.config(borderwidth=3, relief="sunken")
-        self.code_Display.config(foreground="#F573C8")  
+        self.code_Display.config(undo=True, background="#262335", 
+            borderwidth=3, relief="sunken", foreground="#F573C8")
         
         
         style=ttk.Style()
@@ -409,6 +474,13 @@ class CodeDisplayPage(ttk.Frame):
             
         self.config(bg='#121841')   
         
+    def save(self):
+        if len(self.code_Display.get('1.0', 'end-1c')) > 0:
+            f = asksaveasfile(initialfile = 'CommentedCode.txt',
+                defaultextension=".txt", filetypes=[("All Files","*.*")])
+            code = self.code_Display.get('1.0', 'end-1c')
+            f.write(code)
+            f.close
     
     def update_size(self, event):
         # Get the new size of the frame
@@ -418,7 +490,6 @@ class CodeDisplayPage(ttk.Frame):
         # Resize the text area accordingly
         self.code_Display.config(width=width // 10, height=height // 30) 
           
-
     def clear_page(self):
         # Destroy all widgets inside the frame
         for widget in self.winfo_children():
@@ -426,7 +497,11 @@ class CodeDisplayPage(ttk.Frame):
         
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
+    
+    api_key_file = open("C:/Users/larry/OneDrive/Desktop/API KEY.txt", 'r')
+    openai.api_key = api_key_file.read()
+    
     testObj = windows()
     testObj.geometry("800x600")
     testObj.mainloop()
