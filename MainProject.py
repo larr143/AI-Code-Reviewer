@@ -14,6 +14,8 @@ from pylint.reporters.text import TextReporter
 
 
 class windows(tk.Tk):
+    
+    
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
         # Creating a dictionary of frames
