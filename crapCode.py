@@ -16,8 +16,6 @@ def create_temp_python_file(code):
 
 def pylint_Processing(path):
     
-    custom_rcfile = "C:/Users/larry/OneDrive/Documents/compsci/CSC-390/.pylintrc"
-    
     # Custom open stream
     pylint_output = StringIO()
 

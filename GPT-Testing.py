@@ -1,8 +1,6 @@
 import openai
 
 
-openai.api_key = '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'
-
 messages = [ {"role": "system", "content": 
 """
 Analyze Python Code Based on PEP-8 Standards.
