@@ -13,8 +13,6 @@ from pylint.lint import Run
 from pylint.reporters.text import TextReporter
 
 
-
-
 class windows(tk.Tk):
     """windows Classmethod to handle windows .
 
@@ -143,6 +141,7 @@ class windows(tk.Tk):
         """
         
         tkinter.messagebox.showinfo("Help", message)
+
 
 class MainPage(ttk.Frame):
     """Container for the Main Page of the program.
@@ -401,8 +400,8 @@ class MainPage(ttk.Frame):
         """clear_page Deletes all widgets in current container."""
         for widget in self.winfo_children():
             widget.destroy()
-     
-        
+   
+       
 class CodeDisplayPage(ttk.Frame):
     """Container for the frame that contains reviewed code.
     
@@ -537,8 +536,7 @@ class CodeDisplayPage(ttk.Frame):
         for widget in self.winfo_children():
             widget.destroy()
         
-
-
+        
 if __name__ == "__main__": 
     
     api_key_file = open("C:/Users/larry/OneDrive/Desktop/API KEY.txt", 'r')
