@@ -13,15 +13,30 @@ from pylint.lint import Run
 from pylint.reporters.text import TextReporter
 
 
+
+
 class windows(tk.Tk):
-    
+    """windows Classmethod to handle windows .
+
+    This class is the base frame that handles the containing and switching of 
+    other frames. It also handles the styling of the main frame, including
+    the menus options and dialogs. 
+
+    Attributes:
+        frames: A dictionary for containing tkinter frames.
+        code: A string that contains the user's inputted code.
+        pylint_comments: A list that will contain the Pylint output on the user's code.
+        chatgpt_comments: A list that will contain ChatGPT's reworded Pylint outputs.
+
+    Args:
+        tk ([tkinter]): [a reference to the root window of the Tkinter application]
+    """
     
     def __init__(self, *args, **kwargs):
+        """__init__ Initialize the Tk ."""
         tk.Tk.__init__(self, *args, **kwargs)
-        # Creating a dictionary of frames
-        self.frames = {}
         
-        #creating the variables that store code and the comments. 
+        self.frames = {} 
         self.code = ""
         self.pylint_comments = []
         self.chatgpt_comments = [] 
@@ -48,7 +63,7 @@ class windows(tk.Tk):
             frame.grid(row=0, column=0, sticky="nsew")
         
         
-        # Creating a bind for when the size ofthe frame changes then sending the update size command to the frame.
+        # Creating a bind for when the size of the frame changes then sending the update size command to the frame.
         self.bind("<Configure>", self.frames[MainPage].update_size)
         self.prev_width = self.winfo_width()
         self.prev_height = self.winfo_height()     
@@ -59,27 +74,220 @@ class windows(tk.Tk):
         self.show_frame(MainPage)
     
     def menu_bar(self):
+        """menu_bar called to create the menubar ar the top of the program"""
         
-        menubar = tk.Menu(self)
-        filemenu = tk.Menu(menubar, tearoff=0)
-        filemenu.add_command(label="Open",
+        menuBar = tk.Menu(self)
+        fileMenu = tk.Menu(menuBar, tearoff=0)
+        fileMenu.add_command(label="Open",
             command=self.frames[MainPage].user_file_selection)
-        filemenu.add_command(label="Save",
+        fileMenu.add_command(label="Save",
             command=self.frames[CodeDisplayPage].save)
-        filemenu.add_separator()
-        filemenu.add_command(label="Exit", command=self.quit)
-        menubar.add_cascade(label="File", menu=filemenu)
+        fileMenu.add_separator()
+        fileMenu.add_command(label="Exit", command=self.quit)
+        menuBar.add_cascade(label="File", menu=fileMenu)
         
-        helpmenu = tk.Menu(menubar, tearoff=0)
-        helpmenu.add_command(label="Help Index",
+        helpMenu = tk.Menu(menuBar, tearoff=0)
+        helpMenu.add_command(label="Help Index",
             command=self.help_dialog)
-        helpmenu.add_command(label="About...",
+        helpMenu.add_command(label="About...",
             command=self.about_dialog)
-        menubar.add_cascade(label="Help", menu=helpmenu)
+        menuBar.add_cascade(label="Help", menu=helpMenu)
         
-        self.config(menu=menubar)
+        self.config(menu=menuBar)
+            
+    def show_frame(self, cont):
+        """show_frame Raises desired container
+
+        Args:
+            cont (Container): Contains the container the program wants to display.
+        """
+        frame = self.frames[cont]
+        
+        if cont is CodeDisplayPage: frame.text_Population()
+        
+        # raises the current frame to the top
+        frame.tkraise()
+
+    def on_resize(self, event):
+        """on_resize resize components on window resize. 
+
+        Args:
+            event (ResizeEvent): The change in height and width of the program 
+        """
+        # Get the new size of the window
+        width = event.width
+        height = event.height
+
+        # Check if the size has actually changed
+        if width != self.prev_width or height != self.prev_height:
+            self.prev_width = width
+            self.prev_height = height
+
+            # Resize components accordingly
+            for frame in self.frames.values():
+                frame.update_size(width, height)
     
-    def pylint_Processing(self, code):
+    def help_dialog(self):
+        """help_dialog Creates help dialog when called"""        
+        
+        message = """
+            If you are having troubles with entering your code into the entry box.
+	            - Make sure the code is properly indented, if the function you enter 
+	            starts with a tab or spaces in-front of it, it isn't properly indented
+	            - For example, the first main is correct the second is tabbed wrong.
+            def main():
+	            print("Hello World!")
+
+	            def main():
+		            print("Hello World!")
+
+            If all of that isn't working you can use the open button on the
+            menu in the home window to add your code directly from a python file. 
+        """
+        
+        tkinter.messagebox.showinfo("Help", message)
+    
+    def about_dialog(self):
+        """about_dialog Creates about dialog when called"""        
+        message = """
+        This program is a Code reviewer that takes in any size of python program.
+        It will then pass that program to Pylint, once Pylint reports, the reports are then sent to ChatGPT. 
+        ChatGPT will then reword the reports to help new users understand the problems with the program. 
+        This includes errors, warnings, convention, and refactoring. 
+
+        This program was written by Larry Tieken. 
+        """
+        
+        tkinter.messagebox.showinfo("Help", message)
+
+class MainPage(ttk.Frame):
+    """Container for the Main Page of the program.
+
+    The main page is where users will be able to enter their code for review.
+    
+    Attributes: 
+        isValid (Boolean): Contains a boolean on code validity.
+
+    Args:
+        ttk (Frame): Frame widget that contains other widgets using ttk for stylization.
+    """
+    
+    def __init__(self, parent, controller):
+        """__init__ Initializes the container and its widgets."""
+        tk.Frame.__init__(self,parent)
+        self.controller = controller
+        self.isValid = None
+        self.what_to_display()
+        
+    def what_to_display(self):
+        """what_to_display Creates all of the widgets in the container and places them."""
+        
+        self.clear_page()
+        
+        ttk.Label(self, text="Welcome! Please input your code below, then click the next button!", 
+            font=("Times New Roman", 18), background="#121841",
+            foreground="#C93D4F").grid(column=0, row=0, padx=2, pady=2)
+      
+               
+        self.text_area = tk.Text(self, wrap=tk.NONE, 
+            width=60, height=18, font=("Consolas", 12)) 
+
+        self.text_area.grid(column=0, row=1, pady=2,
+            padx=2, sticky="nsew")
+        
+        scrollY = ttk.Scrollbar(self, command=self.text_area.yview)
+        scrollY.grid(row=1, column=1, sticky='nsew')
+        self.text_area['yscrollcommand'] = scrollY.set
+            
+        scrollX = ttk.Scrollbar(self, orient="horizontal",
+            command=self.text_area.xview)
+        scrollX.grid(row=2, column=0, sticky='nsew')
+        self.text_area['xscrollcommand'] = scrollX.set
+        
+        
+        if type(self.isValid) == bool:
+            if not self.isValid:
+                validText = tk.Label(self, 
+                    text="your code is not valid, please try again!")
+                validText.grid(column=0, row=4, 
+                    pady=10, padx=10, sticky="nsew")
+            else: 
+                validText = tk.Label(self, text="")
+                validText.grid(column=0, row=4,
+                    pady=10, padx=10, sticky="nsew")
+        
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1) 
+        
+        self.button = tk.Button(
+            self,
+            text="Next(Might take a second)",
+            command=lambda: self.code_Checker()
+        )
+        self.button.grid(column=0, row=3, pady=5, padx=5)  
+        
+        self.frame_style()
+        
+    def user_file_selection(self):
+        """user_file_selection 
+        
+        Creates file search dialog to find .py files.
+        On user input inserts file contents into entry box for code review.
+        """
+        
+        file = filedialog.askopenfile(mode='r',
+            filetypes=[('Python Files', '*.py')])
+
+        if file:
+            # Read the content from the file object
+            content = file.read()
+
+            # Insert the content into the text area
+            self.text_area.insert(tk.END, content)
+
+            # Close the file
+            file.close()
+        
+        self.update_idletasks()   
+        
+    def frame_style(self):
+        """Styles the container and widgets."""
+        
+        self.text_area.config(undo=True, background="#262335",
+            borderwidth=3, relief="sunken", foreground="#F573C8") 
+        
+        style=ttk.Style()
+        style.theme_use('classic')
+        style.configure("Vertical.TScrollbar",
+            background="#A65D34", troughcolor = "#241B2F")
+        style.configure("Horizontal.TScrollbar",
+            background="#A65D34", troughcolor = "#241B2F")
+        
+        
+        self.button.config(background="#241B2F", 
+            foreground="#C93D4F")
+        
+        
+        self.config(bg='#121841')
+    
+    def code_Checker(self):
+        """Checks if user inputted code is valid using AST."""
+        try:
+            ast.parse(self.text_area.get('1.0', 'end-1c'))
+            self.isValid = True
+        except SyntaxError:
+            self.isValid = False
+            self.what_to_display()
+        
+        if self.isValid == True:
+            self.isValid = True
+            self.controller.code = self.text_area.get("1.0", "end-1c")
+            self.pylint_Processing()
+
+    def pylint_Processing(self):
+        """Runs Pylint on user inputted code then sets pylint_comments to Pylint output"""
+        
+        code = self.controller.code
         
         temp_dir = tempfile.mkdtemp()  # Create a temporary directory
         temp_file_path = os.path.join(temp_dir, 'temp_script.py')  # Create a temporary file path
@@ -108,7 +316,7 @@ class windows(tk.Tk):
         # Split the output of pylint into a list
         modified_output = output_text.splitlines()
         
-        # deleting the first line that isnt needed
+        # deleting the first line that isn't needed
         modified_output.pop(0)
         
         for i in range(len(modified_output)):
@@ -121,223 +329,75 @@ class windows(tk.Tk):
             modified_output[i] = modified_output[i].replace((temp_file_path + ':') , '')
             
         self.pylint_comments = modified_output
-            
-    def show_frame(self, cont):
-        frame = self.frames[cont]
         
-        if cont is CodeDisplayPage: frame.text_Population()
-        
-        # raises the current frame to the top
-        frame.tkraise()
-
-    def on_resize(self, event):
-        # Get the new size of the window
-        width = event.width
-        height = event.height
-
-        # Check if the size has actually changed
-        if width != self.prev_width or height != self.prev_height:
-            self.prev_width = width
-            self.prev_height = height
-
-            # Resize components accordingly
-            for frame in self.frames.values():
-                frame.update_size(width, height)
-    
-    def help_dialog(self):
-        message = """
-If you are having troubles with entering your code into the entry box.
-	- Make sure the code is properly indented, if the function you enter 
-	starts with a tab or spaces infront of it, it isn't properly indented
-	- For example, the first main is correct the second is tabbed wrong.
-def main():
-	print("Hello World!")
-
-	def main():
-		print("Hello World!")
-
-If all of that isn't working you can use the open button on the menu in the home winow to add your code directly from a python file. 
-        """
-        
-        tkinter.messagebox.showinfo("Help", message)
-    
-    def about_dialog(self):
-        message = """
-This program is a Code reviewer that takes in any size of python program.
-It will then pass that program to Pylint, once Pylint reports, the reports are then sent to ChatGPT. 
-ChatGPT will then reword the reports to help new users understand the problems with the program. 
-This includes errors, warnings, convention, and refactoring. 
-
-This program was written by Larry Tieken. 
-        """
-        
-        tkinter.messagebox.showinfo("Help", message)
-
-class MainPage(tk.Frame):
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self,parent)
-        self.controller = controller
-        self.isvalid = None
-        self.what_to_display()
-        
-    def what_to_display(self):
-        
-        self.clear_page()
-        
-        ttk.Label(self, text="Welcome! Please input your code below, then click the next button!", 
-            font=("Times New Roman", 18), background="#121841",
-            foreground="#C93D4F").grid(column=0, row=0, padx=2, pady=2)
-      
-               
-        self.text_area = tk.Text(self, wrap=tk.NONE, 
-            width=60, height=18, font=("Consolas", 12)) 
-
-        self.text_area.grid(column=0, row=1, pady=2,
-            padx=2, sticky="nsew")
-        
-        scrolly = ttk.Scrollbar(self, command=self.text_area.yview)
-        scrolly.grid(row=1, column=1, sticky='nsew')
-        self.text_area['yscrollcommand'] = scrolly.set
-            
-        scrollx = ttk.Scrollbar(self, orient="horizontal",
-            command=self.text_area.xview)
-        scrollx.grid(row=2, column=0, sticky='nsew')
-        self.text_area['xscrollcommand'] = scrollx.set
-        
-        
-        if type(self.isvalid) == bool:
-            if not self.isvalid:
-                validtext = tk.Label(self, 
-                    text="your code is not valid, please try again!")
-                validtext.grid(column=0, row=4, 
-                    pady=10, padx=10, sticky="nsew")
-            else: 
-                validtext = tk.Label(self, text="")
-                validtext.grid(column=0, row=4,
-                    pady=10, padx=10, sticky="nsew")
-        
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(0, weight=1) 
-        
-        self.button = tk.Button(
-            self,
-            text="Next(Might take a second)",
-            command=lambda: self.code_Checker()
-        )
-        self.button.grid(column=0, row=3, pady=5, padx=5)  
-        
-        self.frame_style()
-        
-    def user_file_selection(self):
-        
-        file = filedialog.askopenfile(mode='r',
-            filetypes=[('Python Files', '*.py')])
-
-        if file:
-            # Read the content from the file object
-            content = file.read()
-
-            # Insert the content into the text area
-            self.text_area.insert(tk.END, content)
-
-            # Close the file
-            file.close()
-        
-        self.update_idletasks()   
-        
-    def frame_style(self):
-        
-        self.text_area.config(undo=True, background="#262335",
-            borderwidth=3, relief="sunken", foreground="#F573C8") 
-        
-        style=ttk.Style()
-        style.theme_use('classic')
-        style.configure("Vertical.TScrollbar",
-            background="#A65D34", troughcolor = "#241B2F")
-        style.configure("Horizontal.TScrollbar",
-            background="#A65D34", troughcolor = "#241B2F")
-        
-        
-        self.button.config(background="#241B2F", 
-            foreground="#C93D4F")
-        
-        
-        self.config(bg='#121841')
-    
-    def code_Checker(self):
-        try:
-            ast.parse(self.text_area.get('1.0', 'end-1c'))
-            self.isvalid = True
-        except SyntaxError:
-            self.isvalid = False
-            self.what_to_display()
-        
-        if self.isvalid == True:
-            self.isvalid = True
-            self.controller.code = self.text_area.get("1.0", "end-1c")
-            self.controller.pylint_Processing(self.controller.code)
-            self.chatgpt_Processing()
+        self.chatgpt_Processing()
 
     def chatgpt_Processing(self):
+        """
+        Takes Pylint output and sends it to ChatGPT to reword comments for new users. 
+        ChatGPT is sent a priming message and the code for review along with individual 
+        outputs from Pylint. This happens for each output from Pylint. Then sets chatgpt_comments equal 
+        to the comments made by ChatGPT
+        """
         
         messages = [ {"role": "system", "content": 
         
-    """
-    Hello ChatGPT,
+        """
+        Hello ChatGPT,
 
-    I am working on a Python program aimed at helping new computer scientists understand their code better. 
-    The program takes input code from users who are new to Python and runs pylint on it to identify issues.
-    However, the output from pylint can be difficult for beginners to grasp due to its technical language and jargon.
+        I am working on a Python program aimed at helping new computer scientists understand their code better. 
+        The program takes input code from users who are new to Python and runs pylint on it to identify issues.
+        However, the output from pylint can be difficult for beginners to grasp due to its technical language and jargon.
 
-    I need your assistance in making the pylint outputs more readable and user-friendly. 
-    The goal is to generate clear and concise comments that explain the issues detected by pylint in a simple and easy-to-understand manner. 
-    Imagine you are explaining these concepts to someone who is just starting to learn Python programming.
-    I will give you the whole program from the student and individual errors codes for you to reword.
+        I need your assistance in making the pylint outputs more readable and user-friendly. 
+        The goal is to generate clear and concise comments that explain the issues detected by pylint in a simple and easy-to-understand manner. 
+        Imagine you are explaining these concepts to someone who is just starting to learn Python programming.
+        I will give you the whole program from the student and individual errors codes for you to reword.
     
-    Example pylint ouput for interpritation:
-    :1:0: C0116: Missing function or method docstring (missing-function-docstring)
-    1. The :1: is the line where pylint says the error is.
-    2. The Second number inbetween colons in this example :0: doesnt mean anything in any case you will look at.
-    3. The next part of the string that has one letter then 4 digits is the code C Means convention, W means Warning, E means Error. 
-    4. After the last colon is the code description. 
+        Example pylint output for interpretation:
+        :1:0: C0116: Missing function or method docstring (missing-function-docstring)
+        1. The :1: is the line where pylint says the error is.
+        2. The Second number in-between colons in this example :0: doesn't mean anything in any case you will look at.
+        3. The next part of the string that has one letter then 4 digits is the code C Means convention, W means Warning, E means Error. 
+        4. After the last colon is the code description. 
 
 
-    Here's two examples of the type of output you might encounter:
+        Here's two examples of the type of output you might encounter:
     
-    Example Code:
-    -----------
-    def my_function(x):
-        return x*2
+        Example Code:
+        -----------
+        def my_function(x):
+            return x*2
 
-    Pylint Output:
-    --------------
-    :12:0: W0612: Unused variable 'result' (unused-variable)
+        Pylint Output:
+        --------------
+        :12:0: W0612: Unused variable 'result' (unused-variable)
 
-    Desired Comment:
-    ---------------
-    Warning: The variable 'result' is defined but not used in your code. In Python, it's important to remove any unused variables to keep your code clean and efficient.
+        Desired Comment:
+        ---------------
+        Warning: The variable 'result' is defined but not used in your code. In Python, it's important to remove any unused variables to keep your code clean and efficient.
 
 
-    Example Code:
-    -----------
-    def calculate_area_of_rectangle(length, width):
-        area= length*width
-        return area
+        Example Code:
+        -----------
+        def calculate_area_of_rectangle(length, width):
+            area= length*width
+            return area
         
-    Pylint Output:
-    --------------
-    :1:0: C0114: Missing module docstring (missing-module-docstring)
+        Pylint Output:
+        --------------
+        :1:0: C0114: Missing module docstring (missing-module-docstring)
     
-    Desired Comment:
-    ---------------
-    Convention: The function "calculate_area_of_rectangle" does not have a docstring, A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
+        Desired Comment:
+        ---------------
+        Convention: The function "calculate_area_of_rectangle" does not have a docstring, A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
     
 
-    Please help me by rewording the pylint outputs like the example comment above. Your assistance will be invaluable in making the learning process smoother for new computer scientists. Thank you!
+        Please help me by rewording the pylint outputs like the example comment above. Your assistance will be invaluable in making the learning process smoother for new computer scientists. Thank you!
 
-    Best regards,
-    Larry Tieken
-    """} ]
+        Best regards,
+        Larry Tieken
+        """} ]
 
         
         for i in self.controller.pylint_comments:
@@ -364,22 +424,28 @@ class MainPage(tk.Frame):
         self.controller.show_frame(CodeDisplayPage)
          
     def update_size(self, event):
-        # Get the new size of the frame
+        """Resizes widgets in window when window is resized."""
         width = event.width
         height = event.height
-
-        # Resize the text area accordingly
         self.text_area.config(width=width // 10, height=height // 30)
         
     def clear_page(self):
-        # Destroy all widgets inside the frame
+        """clear_page Deletes all widgets in current container."""
         for widget in self.winfo_children():
             widget.destroy()
      
         
 class CodeDisplayPage(ttk.Frame):
+    """Container for the frame that contains reviewed code.
     
+    In this frame the user will have their code that has been reviewed displayed to them. 
+    they have the option to save the code at the top of the program with the comments in it. 
+    
+    Args:
+        ttk (Frame): Frame widget that contains other widgets using ttk for stylization.
+    """
     def __init__(self, parent, controller):
+        """__init__ Initializes the container and its widgets."""
         tk.Frame.__init__(self, parent)
         self.controller = controller
 
@@ -389,7 +455,13 @@ class CodeDisplayPage(ttk.Frame):
         self.text_Population
         
     def text_Population(self):
+        """Frame building function for the CodeDisplayPage
         
+        Calling this function will build the frame and then populate the text box
+        with the users code with the comments from ChatGPT. If this function is called
+        without having comments from ChatGPT it will not populate the page. 
+        
+        """
         self.clear_page
         
         if len(self.controller.chatgpt_comments) > 0: 
@@ -407,14 +479,14 @@ class CodeDisplayPage(ttk.Frame):
             self.code_Display.grid(column=0, row=1, pady=2,
                 padx=2, sticky="nsew")
             
-            scrolly = ttk.Scrollbar(self, command=self.code_Display.yview)
-            scrolly.grid(row=1, column=1, sticky='nsew')
-            self.code_Display['yscrollcommand'] = scrolly.set
+            scrollY = ttk.Scrollbar(self, command=self.code_Display.yview)
+            scrollY.grid(row=1, column=1, sticky='nsew')
+            self.code_Display['yscrollcommand'] = scrollY.set
             
-            scrollx = ttk.Scrollbar(self, orient="horizontal" ,
+            scrollX = ttk.Scrollbar(self, orient="horizontal" ,
                 command=self.code_Display.xview)
-            scrollx.grid(row=2, column=0, sticky='nsew')
-            self.code_Display['xscrollcommand'] = scrollx.set
+            scrollX.grid(row=2, column=0, sticky='nsew')
+            self.code_Display['xscrollcommand'] = scrollX.set
             
             self.code_Display.config(undo=True)
             self.code_Display.config(borderwidth=3, relief="sunken")
@@ -462,7 +534,7 @@ class CodeDisplayPage(ttk.Frame):
             self.update_idletasks()
             
     def frame_style(self):
-        
+        """Styles the container and widgets."""
         self.code_Display.config(undo=True, background="#262335", 
             borderwidth=3, relief="sunken", foreground="#F573C8")
         
@@ -477,6 +549,13 @@ class CodeDisplayPage(ttk.Frame):
         self.config(bg='#121841')   
         
     def save(self):
+        """save, saves the text that is currently in code_Display.
+        
+        When called, the program will open up a file dialog for the user. 
+        When the user chooses where to save the txt file the program will pull from the 
+        code_Display text box and save it.  
+        
+        """
         if len(self.code_Display.get('1.0', 'end-1c')) > 0:
             f = asksaveasfile(initialfile = 'CommentedCode.txt',
                 defaultextension=".txt", filetypes=[("All Files","*.*")])
@@ -485,15 +564,13 @@ class CodeDisplayPage(ttk.Frame):
             f.close
     
     def update_size(self, event):
-        # Get the new size of the frame
+        """Resizes widgets in window when window is resized."""
         width = event.width
         height = event.height
-
-        # Resize the text area accordingly
         self.code_Display.config(width=width // 10, height=height // 30) 
           
     def clear_page(self):
-        # Destroy all widgets inside the frame
+        """clear_page Deletes all widgets in current container."""
         for widget in self.winfo_children():
             widget.destroy()
         
