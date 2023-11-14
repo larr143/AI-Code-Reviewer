@@ -41,20 +41,13 @@ class windows(tk.Tk):
         self.pylint_comments = []
         self.chatgpt_comments = [] 
         
-        # Adding a title to the window
         self.wm_title("Code Reviewer")
-
-        # creating a frame and assigning it to container
         container = tk.Frame(self, width=400,height=600)
-        
-        # specifying the region where the frame is packed in root
         container.pack(side="top", fill="both", expand=True)
-
-        # configuring the location of the container using grid
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        # we'll create the frames themselves later but let's add the components to the dictionary.
+        # Adding Windows to the dictionary.
         for F in (MainPage, CodeDisplayPage):
             frame = F(container, self)
 
@@ -69,8 +62,6 @@ class windows(tk.Tk):
         self.prev_height = self.winfo_height()     
         
         self.menu_bar()
-        
-        # Using a method to switch frames
         self.show_frame(MainPage)
     
     def menu_bar(self):
@@ -102,10 +93,7 @@ class windows(tk.Tk):
             cont (Container): Contains the container the program wants to display.
         """
         frame = self.frames[cont]
-        
         if cont is CodeDisplayPage: frame.text_Population()
-        
-        # raises the current frame to the top
         frame.tkraise()
 
     def on_resize(self, event):
@@ -114,22 +102,18 @@ class windows(tk.Tk):
         Args:
             event (ResizeEvent): The change in height and width of the program 
         """
-        # Get the new size of the window
         width = event.width
         height = event.height
-
-        # Check if the size has actually changed
+        
         if width != self.prev_width or height != self.prev_height:
             self.prev_width = width
             self.prev_height = height
-
-            # Resize components accordingly
+            
             for frame in self.frames.values():
                 frame.update_size(width, height)
     
     def help_dialog(self):
         """help_dialog Creates help dialog when called"""        
-        
         message = """
             If you are having troubles with entering your code into the entry box.
 	            - Make sure the code is properly indented, if the function you enter 
@@ -188,7 +172,6 @@ class MainPage(ttk.Frame):
             font=("Times New Roman", 18), background="#121841",
             foreground="#C93D4F").grid(column=0, row=0, padx=2, pady=2)
       
-               
         self.text_area = tk.Text(self, wrap=tk.NONE, 
             width=60, height=18, font=("Consolas", 12)) 
 
@@ -204,7 +187,7 @@ class MainPage(ttk.Frame):
         scrollX.grid(row=2, column=0, sticky='nsew')
         self.text_area['xscrollcommand'] = scrollX.set
         
-        
+        # Creates a label if user input was not valid Python code.
         if type(self.isValid) == bool:
             if not self.isValid:
                 validText = tk.Label(self, 
@@ -215,9 +198,6 @@ class MainPage(ttk.Frame):
                 validText = tk.Label(self, text="")
                 validText.grid(column=0, row=4,
                     pady=10, padx=10, sticky="nsew")
-        
-        self.grid_rowconfigure(1, weight=1)
-        self.grid_columnconfigure(0, weight=1) 
         
         self.button = tk.Button(
             self,
@@ -239,13 +219,8 @@ class MainPage(ttk.Frame):
             filetypes=[('Python Files', '*.py')])
 
         if file:
-            # Read the content from the file object
             content = file.read()
-
-            # Insert the content into the text area
             self.text_area.insert(tk.END, content)
-
-            # Close the file
             file.close()
         
         self.update_idletasks()   
@@ -263,15 +238,18 @@ class MainPage(ttk.Frame):
         style.configure("Horizontal.TScrollbar",
             background="#A65D34", troughcolor = "#241B2F")
         
-        
         self.button.config(background="#241B2F", 
             foreground="#C93D4F")
         
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1) 
         
         self.config(bg='#121841')
     
     def code_Checker(self):
         """Checks if user inputted code is valid using AST."""
+        
+        # A try except to check if the code entered is parsable python 
         try:
             ast.parse(self.text_area.get('1.0', 'end-1c'))
             self.isValid = True
@@ -291,45 +269,34 @@ class MainPage(ttk.Frame):
         
         temp_dir = tempfile.mkdtemp()  # Create a temporary directory
         temp_file_path = os.path.join(temp_dir, 'temp_script.py')  # Create a temporary file path
-
+        
         with open(temp_file_path, 'w') as temp_file:
             temp_file.write(code)  # Write the input string to the temporary file
     
-        custom_rcfile = "C:/Users/larry/OneDrive/Documents/compsci/CSC-390/.pylintrc"
-    
-        # Custom open stream
         pylint_output = StringIO()
-
-        # Create a reporter with the custom stream
         reporter = TextReporter(pylint_output)
-    
-        # Specify the path to your custom .pylintrc file
-        custom_rcfile = "C:/Users/larry/OneDrive/Documents/compsci/CSC-390/.pylintrc"
+        rcFile = "C:/Users/larry/OneDrive/Documents/compsci/CSC-390/.pylintrc"
         
-        # Run pylint on the specified file(s) with the custom reporter
-        Run([temp_file_path, "--rcfile", custom_rcfile],
+        # Run pylint on the specified file(s) with the custom Pylint Config file. 
+        Run([temp_file_path, "--rcfile", rcFile],
             reporter=reporter, exit=False)
 
-        # Retrieve the text report
         output_text = pylint_output.getvalue()
-    
-        # Split the output of pylint into a list
-        modified_output = output_text.splitlines()
+        modified_output = output_text.splitlines()# Split output into a list.
+        modified_output.pop(0)# Deleting Pylint output title.
         
-        # deleting the first line that isn't needed
-        modified_output.pop(0)
-        
+        #Gets rid of the Pylint score after the output Codes.
         for i in range(len(modified_output)):
             if "------------------------------" in modified_output[i]:
                 del modified_output[i:]
                 modified_output.pop()
                 break
 
+        #Gets rid of the input file path in-front of each code.
         for i in range(len(modified_output)):
             modified_output[i] = modified_output[i].replace((temp_file_path + ':') , '')
             
-        self.pylint_comments = modified_output
-        
+        self.controller.pylint_comments = modified_output
         self.chatgpt_Processing()
 
     def chatgpt_Processing(self):
@@ -340,9 +307,9 @@ class MainPage(ttk.Frame):
         to the comments made by ChatGPT
         """
         
-        messages = [ {"role": "system", "content": 
-        
-        """
+        #Creating a priming message as the system to tell ChatGPT how to respond
+        #To the user 
+        messages = [ {"role": "system", "content": """
         Hello ChatGPT,
 
         I am working on a Python program aimed at helping new computer scientists understand their code better. 
@@ -399,7 +366,8 @@ class MainPage(ttk.Frame):
         Larry Tieken
         """} ]
 
-        
+        #Sends ChatGPT a priming message, the user code, and pylint code 
+        #For each code generated by Pylint. 
         for i in self.controller.pylint_comments:
             
             if len(messages) > 2:
@@ -448,10 +416,8 @@ class CodeDisplayPage(ttk.Frame):
         """__init__ Initializes the container and its widgets."""
         tk.Frame.__init__(self, parent)
         self.controller = controller
-
         self.code_Display = tk.Text(self, wrap=tk.NONE, 
                 width=60, height=20, font=("Consolas", 12))
-        
         self.text_Population
         
     def text_Population(self):
@@ -464,15 +430,19 @@ class CodeDisplayPage(ttk.Frame):
         """
         self.clear_page
         
+        #Populates the page ONLY if ChatGPT has outputted. 
         if len(self.controller.chatgpt_comments) > 0: 
-            # ensure a consistent GUI size
-            self.grid_propagate(False)
+            
+            code_list = self.controller.code.splitlines()
+            error_line_numbers = []
+            code_with_comments = []
+            line_Number = 0
+            error_index = 0
             
             ttk.Label(self, text="Here Is your code!", 
             font=("Times New Roman", 18), background="#121841",
             foreground="#C93D4F").grid(column=0, row=0, padx=2, pady=2)
             
-        
             self.code_Display = tk.Text(self, wrap=tk.NONE, 
                 width=60, height=20, font=("Consolas", 12))
             
@@ -488,40 +458,30 @@ class CodeDisplayPage(ttk.Frame):
             scrollX.grid(row=2, column=0, sticky='nsew')
             self.code_Display['xscrollcommand'] = scrollX.set
             
-            self.code_Display.config(undo=True)
-            self.code_Display.config(borderwidth=3, relief="sunken")
-            
-            self.grid_rowconfigure(1, weight=1)
-            self.grid_columnconfigure(0, weight=1)
-            
-            code_list = self.controller.code.splitlines()
-            error_line_numbers = []
-            line_Number = 0
-            error_index = 0
-            code_with_comments = []
-            
+            #For each pylint comment it appends error numbers
+            #to the list in the order given by Pylint
             for i in self.controller.pylint_comments:
                 digit = 0 
                 number = ""
                 for j in range(len(i)):
                     if i[j].isdigit():
                         number += i[j]
-                        digit = digit + 1
+                        digit += 1
                     elif i[j] == ':':
                         error_line_numbers.append(number)
                         break
                     
-                    
+            #for each code output it checks if the current line 
+            #being appended to the code with comments list has a 
+            #error associated with it. If it does it appends the code
+            #after the line it is for.        
             for i in code_list:
-            
                 for j in error_line_numbers:
-                
                     if int(j) == line_Number:   
                         code_with_comments.append(self.controller.chatgpt_comments[error_index])
                         error_index += 1
                     else:
-                        error_index += 1
-                    
+                        error_index += 1      
                 error_index = 0
                 code_with_comments.append(i)
                 line_Number += 1
@@ -530,7 +490,6 @@ class CodeDisplayPage(ttk.Frame):
                 self.code_Display.insert(tk.END, line + "\n")
 
             self.frame_style()
-            
             self.update_idletasks()
             
     def frame_style(self):
@@ -538,13 +497,17 @@ class CodeDisplayPage(ttk.Frame):
         self.code_Display.config(undo=True, background="#262335", 
             borderwidth=3, relief="sunken", foreground="#F573C8")
         
-        
         style=ttk.Style()
         style.theme_use('classic')
         style.configure("Vertical.TScrollbar",
             background="#A65D34", troughcolor = "#241B2F")
         style.configure("Horizontal.TScrollbar",
             background="#A65D34", troughcolor = "#241B2F")
+        
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        
+        self.grid_propagate(False)
             
         self.config(bg='#121841')   
         
