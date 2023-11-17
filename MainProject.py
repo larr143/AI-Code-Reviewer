@@ -1,12 +1,14 @@
 import ast
 import os
 import tempfile
+import threading
 import tkinter as tk
 import tkinter.messagebox
 from io import StringIO
 from tkinter import filedialog, ttk
 from tkinter.filedialog import askopenfile, asksaveasfile
 from tkinter.scrolledtext import ScrolledText
+import queue
 
 import openai
 from pylint.lint import Run
@@ -46,7 +48,7 @@ class windows(tk.Tk):
         container.grid_columnconfigure(0, weight=1)
 
         # Adding Windows to the dictionary.
-        for F in (MainPage, CodeDisplayPage):
+        for F in (MainPage, CodeDisplayPage, LoadingPage):
             frame = F(container, self)
 
             # the windows class acts as the root window for the frames.
@@ -259,7 +261,11 @@ class MainPage(ttk.Frame):
         if self.isValid == True:
             self.isValid = True
             self.controller.code = self.text_area.get("1.0", "end-1c")
+            
             self.pylint_Processing()
+            
+            self.controller.frames[LoadingPage].start_processing()
+
 
     def pylint_Processing(self):
         """Runs Pylint on user inputted code then sets pylint_comments to Pylint output"""
@@ -296,99 +302,98 @@ class MainPage(ttk.Frame):
             modified_output[i] = modified_output[i].replace((temp_file_path + ':') , '')
             
         self.controller.pylint_comments = modified_output
-        self.chatgpt_Processing()
 
-    def chatgpt_Processing(self):
-        """
-        Takes Pylint output and sends it to ChatGPT to reword comments for new users. 
-        ChatGPT is sent a priming message and the code for review along with individual 
-        outputs from Pylint. This happens for each output from Pylint. Then sets chatgpt_comments equal 
-        to the comments made by ChatGPT
-        """
+    # def chatgpt_Processing(self):
+    #     """
+    #     Takes Pylint output and sends it to ChatGPT to reword comments for new users. 
+    #     ChatGPT is sent a priming message and the code for review along with individual 
+    #     outputs from Pylint. This happens for each output from Pylint. Then sets chatgpt_comments equal 
+    #     to the comments made by ChatGPT
+    #     """
         
-        #Creating a priming message as the system to tell ChatGPT how to respond
-        #To the user 
-        messages = [ {"role": "system", "content": """
-        Hello ChatGPT,
+    #     #Creating a priming message as the system to tell ChatGPT how to respond
+    #     #To the user 
+    #     messages = [ {"role": "system", "content": """
+    #     Hello ChatGPT,
 
-        I am working on a Python program aimed at helping new computer scientists understand their code better. 
-        The program takes input code from users who are new to Python and runs pylint on it to identify issues.
-        However, the output from pylint can be difficult for beginners to grasp due to its technical language and jargon.
+    #     I am working on a Python program aimed at helping new computer scientists understand their code better. 
+    #     The program takes input code from users who are new to Python and runs pylint on it to identify issues.
+    #     However, the output from pylint can be difficult for beginners to grasp due to its technical language and jargon.
 
-        I need your assistance in making the pylint outputs more readable and user-friendly. 
-        The goal is to generate clear and concise comments that explain the issues detected by pylint in a simple and easy-to-understand manner. 
-        Imagine you are explaining these concepts to someone who is just starting to learn Python programming.
-        I will give you the whole program from the student and individual errors codes for you to reword.
+    #     I need your assistance in making the pylint outputs more readable and user-friendly. 
+    #     The goal is to generate clear and concise comments that explain the issues detected by pylint in a simple and easy-to-understand manner. 
+    #     Imagine you are explaining these concepts to someone who is just starting to learn Python programming.
+    #     I will give you the whole program from the student and individual errors codes for you to reword.
     
-        Example pylint output for interpretation:
-        :1:0: C0116: Missing function or method docstring (missing-function-docstring)
-        1. The :1: is the line where pylint says the error is.
-        2. The Second number in-between colons in this example :0: doesn't mean anything in any case you will look at.
-        3. The next part of the string that has one letter then 4 digits is the code C Means convention, W means Warning, E means Error. 
-        4. After the last colon is the code description. 
+    #     Example pylint output for interpretation:
+    #     :1:0: C0116: Missing function or method docstring (missing-function-docstring)
+    #     1. The :1: is the line where pylint says the error is.
+    #     2. The Second number in-between colons in this example :0: doesn't mean anything in any case you will look at.
+    #     3. The next part of the string that has one letter then 4 digits is the code C Means convention, W means Warning, E means Error. 
+    #     4. After the last colon is the code description. 
 
 
-        Here's two examples of the type of output you might encounter:
+    #     Here's two examples of the type of output you might encounter:
     
-        Example Code:
-        -----------
-        def my_function(x):
-            return x*2
+    #     Example Code:
+    #     -----------
+    #     def my_function(x):
+    #         return x*2
 
-        Pylint Output:
-        --------------
-        :12:0: W0612: Unused variable 'result' (unused-variable)
+    #     Pylint Output:
+    #     --------------
+    #     :12:0: W0612: Unused variable 'result' (unused-variable)
 
-        Desired Comment:
-        ---------------
-        Warning: The variable 'result' is defined but not used in your code. In Python, it's important to remove any unused variables to keep your code clean and efficient.
+    #     Desired Comment:
+    #     ---------------
+    #     Warning: The variable 'result' is defined but not used in your code. In Python, it's important to remove any unused variables to keep your code clean and efficient.
 
 
-        Example Code:
-        -----------
-        def calculate_area_of_rectangle(length, width):
-            area= length*width
-            return area
+    #     Example Code:
+    #     -----------
+    #     def calculate_area_of_rectangle(length, width):
+    #         area= length*width
+    #         return area
         
-        Pylint Output:
-        --------------
-        :1:0: C0114: Missing module docstring (missing-module-docstring)
+    #     Pylint Output:
+    #     --------------
+    #     :1:0: C0114: Missing module docstring (missing-module-docstring)
     
-        Desired Comment:
-        ---------------
-        Convention: The function "calculate_area_of_rectangle" does not have a docstring, A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
+    #     Desired Comment:
+    #     ---------------
+    #     Convention: The function "calculate_area_of_rectangle" does not have a docstring, A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
     
 
-        Please help me by rewording the pylint outputs like the example comment above. Your assistance will be invaluable in making the learning process smoother for new computer scientists. Thank you!
+    #     Please help me by rewording the pylint outputs like the example comment above. Your assistance will be invaluable in making the learning process smoother for new computer scientists. Thank you!
 
-        Best regards,
-        Larry Tieken
-        """} ]
+    #     Best regards,
+    #     Larry Tieken
+    #     """} ]
 
-        #Sends ChatGPT a priming message, the user code, and pylint code 
-        #For each code generated by Pylint. 
-        for i in self.controller.pylint_comments:
+    #     #Sends ChatGPT a priming message, the user code, and pylint code 
+    #     #For each code generated by Pylint. 
+    #     for i in self.controller.pylint_comments:
             
-            if len(messages) > 2:
-                messages.pop()
+    #         if len(messages) > 2:
+    #             messages.pop()
 
-                messages.append(
-                    {"role": "user", "content": i}    
-                )
-            else:
-                messages.append(
-                    {"role": "user", "content": i}    
-                )
+    #             messages.append(
+    #                 {"role": "user", "content": i}    
+    #             )
+    #         else:
+    #             messages.append(
+    #                 {"role": "user", "content": i}    
+    #             )
         
-            chat = openai.ChatCompletion.create( 
-                model="gpt-3.5-turbo", messages=messages 
-            )
+    #         chat = openai.ChatCompletion.create( 
+    #             model="gpt-3.5-turbo", messages=messages 
+    #         )
             
-            reply = chat.choices[0].message.content 
+    #         reply = chat.choices[0].message.content 
             
-            self.controller.chatgpt_comments.append(reply)
+    #         self.controller.chatgpt_comments.append(reply)
         
-        self.controller.show_frame(CodeDisplayPage)
+    #     self.controller.show_frame(CodeDisplayPage)
          
     def update_size(self, event):
         """Resizes widgets in window when window is resized."""
@@ -401,7 +406,56 @@ class MainPage(ttk.Frame):
         for widget in self.winfo_children():
             widget.destroy()
    
-       
+class LoadingPage(ttk.Frame):
+    
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.iteration = 0
+        self.loading_label = ttk.Label(self, text="Processing...", font=("Times New Roman", 18))
+        self.loading_label.pack(side="top",expand=True)
+            
+    def start_processing(self):
+        self.controller.show_frame(LoadingPage)
+        self.queue = queue.Queue()
+        self.chat_thread = ChatGptThreaded(
+            self.queue, self.controller.pylint_comments, self.controller.code
+        )
+        self.chat_thread.start()
+        self.master.after(100, self.process_queue)  
+    
+    def process_queue(self):
+        try:
+            progress_info = self.queue.get_nowait()
+            if isinstance(progress_info, dict):
+                # Thread has completed, update UI accordingly
+                self.loading_label.config(text="Processing completed.")
+                self.controller.chatgpt_comments = progress_info["result"]
+                self.controller.show_frame(CodeDisplayPage)
+            elif isinstance(progress_info, int):
+                # Update progress in the UI
+                self.loading_label.config(text=f"Processing... {progress_info}%")
+                self.update_idletasks()
+
+            self.master.after(100, self.process_queue)
+
+        except queue.Empty:
+            if self.chat_thread.is_alive():
+                self.master.after(100, self.process_queue)
+    
+    #def update_progress(self):
+        
+        # for i in self.controller.pylint_comments:
+        #     self.progress.step(100/len(self.controller.pylint_comments))
+        #     self.update_idletasks()
+        #     threading.Thread(target=self.chatgpt_Processing, args=(i,)).start()
+        #     self.iteration += 1 
+        #     print("itter")
+            
+        # print("done")
+        # self.controller.show_frame(CodeDisplayPage)
+
+    
 class CodeDisplayPage(ttk.Frame):
     """Container for the frame that contains reviewed code.
     
@@ -535,9 +589,121 @@ class CodeDisplayPage(ttk.Frame):
         """clear_page Deletes all widgets in current container."""
         for widget in self.winfo_children():
             widget.destroy()
+ 
+class ChatGptThreaded(threading.Thread): 
+    def __init__(self, queue, comments, code):
+        super().__init__()
+        self.queue = queue
+        self.comments = comments
+        self.code = code
         
+    def run(self):
+        """
+        Takes Pylint output and sends it to ChatGPT to reword comments for new users. 
+        ChatGPT is sent a priming message and the code for review along with individual 
+        outputs from Pylint. This happens for each output from Pylint. Then sets chatgpt_comments equal 
+        to the comments made by ChatGPT
+        """
+        comment_list = []
+        
+        #Creating a priming message as the system to tell ChatGPT how to respond
+        #To the user 
+        messages = [ {"role": "system", "content": """
+        Hello ChatGPT,
+
+        I am working on a Python program aimed at helping new computer scientists understand their code better. 
+        The program takes input code from users who are new to Python and runs pylint on it to identify issues.
+        However, the output from pylint can be difficult for beginners to grasp due to its technical language and jargon.
+
+        I need your assistance in making the pylint outputs more readable and user-friendly. 
+        The goal is to generate clear and concise comments that explain the issues detected by pylint in a simple and easy-to-understand manner. 
+        Imagine you are explaining these concepts to someone who is just starting to learn Python programming.
+        I will give you the whole program from the student and individual errors codes for you to reword.
+    
+        Example pylint output for interpretation:
+        :1:0: C0116: Missing function or method docstring (missing-function-docstring)
+        1. The :1: is the line where pylint says the error is.
+        2. The Second number in-between colons in this example :0: doesn't mean anything in any case you will look at.
+        3. The next part of the string that has one letter then 4 digits is the code C Means convention, W means Warning, E means Error. 
+        4. After the last colon is the code description. 
+
+
+        Here's two examples of the type of output you might encounter:
+    
+        Example Code:
+        -----------
+        def my_function(x):
+            return x*2
+
+        Pylint Output:
+        --------------
+        :12:0: W0612: Unused variable 'result' (unused-variable)
+
+        Desired Comment:
+        ---------------
+        Warning: The variable 'result' is defined but not used in your code. In Python, it's important to remove any unused variables to keep your code clean and efficient.
+
+
+        Example Code:
+        -----------
+        def calculate_area_of_rectangle(length, width):
+            area= length*width
+            return area
+        
+        Pylint Output:
+        --------------
+        :1:0: C0114: Missing module docstring (missing-module-docstring)
+    
+        Desired Comment:
+        ---------------
+        Convention: The function "calculate_area_of_rectangle" does not have a docstring, A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
+    
+
+        Please help me by rewording the pylint outputs like the example comment above. Your assistance will be invaluable in making the learning process smoother for new computer scientists. Thank you!
+
+        Best regards,
+        Larry Tieken
+        """} ]
+
+        messages.append(
+            {"role": "system", "content": ("here is the users code: " + self.code)}
+        )
+        
+        total_comments = len(self.comments)
+        progress = 0
+        amount_processed = 0
+        
+        #Sends ChatGPT a priming message, the user code, and pylint code 
+        #For each code generated by Pylint. 
+        for i in self.comments:
+            if len(messages) > 2:
+                messages.pop()
+                print(i)
+                messages.append(
+                    {"role": "user", "content": i}    
+                )
+            else:
+                messages.append(
+                    {"role": "user", "content": i}    
+                )
+                print(i)
+        
+            chat = openai.ChatCompletion.create( 
+                model="gpt-3.5-turbo", messages=messages 
+            )
+            
+            reply = chat.choices[0].message.content 
+            
+            comment_list.append(reply)
+            
+            progress = int((len(comment_list) / total_comments) * 100)
+            self.queue.put(progress)
+            print("Progress!")
+        
+        self.queue.put({"progress": 100, "result": comment_list})
         
 if __name__ == "__main__": 
+
     
     api_key_file = open("C:/Users/larry/OneDrive/Desktop/API KEY.txt", 'r')
     openai.api_key = api_key_file.read()

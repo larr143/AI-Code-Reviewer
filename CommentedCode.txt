@@ -1,0 +1,20 @@
+def calculate_area_of_rectangle(length, width):
+Convention: Your code is missing a module docstring. A module docstring is a special type of comment that provides an overview of the functionality and purpose of the entire module.
+ It is important to include a module docstring to help other developers (or yourself) understand the purpose and usage of the module.
+Convention: Your function or method is missing a docstring. A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers 
+(or yourself) understand its purpose and how to use it. Remember to always include a docstring for your functions and methods.
+    area= length*width
+    return area
+
+def print_rectangle_properties(length,width):
+Convention: Your code is missing a docstring for the function or method defined at line 5. A docstring is a special type of comment in code that explains what a specific part of the code does, helping other developers (or the coder themselves) understand its purpose and how to use it.
+    print("Length of rectangle: ",length)
+    print("Width of rectangle: ", width)
+    print("Area: ", calculate_area_of_rectangle(length,width))
+
+length_of_rectangle=10
+Error: The constant "length_of_rectangle" should be named in uppercase letters according to Python's naming conventions for constants. Constants are variables whose value should not be changed once defined, and by convention, their names are written in all uppercase letters with underscores separating words.
+width_of_rectangle=5
+Convention: The constant name "width_of_rectangle" does not follow the recommended naming convention of using uppercase letters and underscores. In Python, constants are typically written in all capital letters with underscores separating words to improve readability and distinguish them from other variable names.
+
+print_rectangle_properties(length_of_rectangle,width_of_rectangle)
