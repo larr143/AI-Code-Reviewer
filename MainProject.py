@@ -607,7 +607,6 @@ class ChatGptThreaded(threading.Thread):
         for i in self.comments:
             if len(messages) > 2:
                 messages.pop()
-                print(i)
                 messages.append(
                     {"role": "user", "content": i}    
                 )
@@ -615,10 +614,11 @@ class ChatGptThreaded(threading.Thread):
                 messages.append(
                     {"role": "user", "content": i}    
                 )
-                print(i)
         
-            chat = openai.ChatCompletion.create( 
-                model="gpt-3.5-turbo", messages=messages 
+            chat = openai.ChatCompletion.create(
+                # gpt-4
+                # gpt-3.5-turbo
+                model="gpt-4", messages=messages 
             )
             
             reply = chat.choices[0].message.content 
